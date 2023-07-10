@@ -10,10 +10,10 @@ import pandas as pd
 import importlib
 
 def read_model(instance):
-    m = read('collection/'+instance+'.mps.gz')
-    m_new = read('collection/'+instance+'.mps.gz')
-    m_new1 = read('collection/'+instance+'.mps.gz')
-    m_new2 = read('collection/'+instance+'.mps.gz')
+    m = read('instances/'+instance+'.mps.gz')
+    m_new = read('instances/'+instance+'.mps.gz')
+    m_new1 = read('instances/'+instance+'.mps.gz')
+    m_new2 = read('instances/'+instance+'.mps.gz')
     return m, m_new, m_new1, m_new2
 
 def get_info(m):
@@ -43,7 +43,7 @@ def get_info(m):
 # def solve_LP():
 
 def decomp_model(A, sizeA, con, nonzeros, vars, HGtype, instance, nBlocks):
-    if HGtype == 'r':
+    if HGtype == 'r': 
         print("Create Row-Net Hypergraph")
         # Create Row-Net Hypergraph
         rNetHg = []
@@ -189,17 +189,17 @@ def solve_decomp_with_slack(A, vars, RHS, SENSE, add_slack):
         for j in A.getrow(i).nonzero()[1]:
             ConsExpr += A[i,j]*X_vars[j]
         if add_slack[i] and SENSE[i] == "<":
-            cur_slack = new_model.addVar(vtype = GRB.CONTINUOUS,
+            cur_slack = new_model.addVar(lb = 0.0, vtype = GRB.CONTINUOUS,
                                                name = "S" + str(i))
             slack_vars.append(cur_slack)
             ConsExpr -= cur_slack
         elif add_slack[i] and SENSE[i] == ">":
-            cur_slack = new_model_all.addVar(vtype = GRB.CONTINUOUS,
+            cur_slack = new_model_all.addVar(lb = 0.0, vtype = GRB.CONTINUOUS,
                                                name = "S" + str(i))
             slack_vars_all.append(cur_slack)
             ConsExpr += cur_slack
         elif add_slack[i] and SENSE[i] == "=":
-            cur_slack1 = new_model.addVar(vtype = GRB.CONTINUOUS,
+            cur_slack1 = new_model.addVar(lb = 0.0, vtype = GRB.CONTINUOUS,
                                                name = "S" + str(i) + '_1')
             cur_slack2 = new_model.addVar(vtype = GRB.CONTINUOUS,
                                                name = "S" + str(i) + '_2')
@@ -274,22 +274,22 @@ def solve_all_add_slack(A, vars, SENSE, RHS):
     for i in range(A.shape[0]):
         ConsExpr = LinExpr()
 
-        for j in A.getrow(i).nonzero()[1]:
+        for j in A.getrow(i).nonzero()[1]:  # .nonzero -> [0]: first indices, [1]: second indices, [2]: corresponding values
             ConsExpr += A[i,j]*X_vars_all[j]
         if SENSE[i] == "<":
-            cur_slack = new_model_all.addVar(vtype = GRB.CONTINUOUS,
+            cur_slack = new_model_all.addVar(lb = 0.0, vtype = GRB.CONTINUOUS,
                                                name = "S" + str(i))
             slack_vars_all.append(cur_slack)
             ConsExpr -= cur_slack
         elif SENSE[i] == ">":
-            cur_slack = new_model_all.addVar(vtype = GRB.CONTINUOUS,
+            cur_slack = new_model_all.addVar(lb = 0.0, vtype = GRB.CONTINUOUS,
                                                name = "S" + str(i))
             slack_vars_all.append(cur_slack)
             ConsExpr += cur_slack
         elif SENSE[i] == "=":
-            cur_slack1 = new_model_all.addVar(vtype = GRB.CONTINUOUS,
+            cur_slack1 = new_model_all.addVar(lb = 0.0, vtype = GRB.CONTINUOUS,
                                                name = "S" + str(i) + '_1')
-            cur_slack2 = new_model_all.addVar(vtype = GRB.CONTINUOUS,
+            cur_slack2 = new_model_all.addVar(lb = 0.0, vtype = GRB.CONTINUOUS,
                                                name = "S" + str(i) + '_2')
             slack_vars_all.append(cur_slack1)
             slack_vars_all.append(cur_slack2)
