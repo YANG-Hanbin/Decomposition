@@ -47,17 +47,21 @@ def decomp_model(A, sizeA, con, nonzeros, vars, HGtype, instance, nBlocks):
         print("Create Row-Net Hypergraph")
         # Create Row-Net Hypergraph
         rNetHg = []
-        for i in range(sizeA[0]):
-            rNetHg.append(A.getrow(i).nonzero()[1])
+        for i in range(sizeA[0]): # sizeA[0]: number of constraints
+            rNetHg.append(A.getrow(i).nonzero()[1]) # for each constraint, add the index of its non-zero element into rNetHg
         nNodes = sizeA[1]+round(len(nonzeros)*0.2)
         nHedges = sizeA[0]
-        wrtStr = str(nHedges)+'\t'+str(nNodes)+'\n'
+        wrtStr = str(nHedges)+'\t'+str(nNodes)+'\n' # Convert the number of hyperedges nHedges and the number of nodes nNodes into strings, separated by tabs and newlines
         for i in range(nHedges):
             for k in range(len(rNetHg[i])):
                 wrtStr += str(rNetHg[i][k]+1)
-                if k < len(rNetHg[i])-1:
+                if k < len(rNetHg[i])-1: # add a tab after the node index if it is not the last node of the hyperedge
                     wrtStr += '\t'
             wrtStr += '\n'
+        # 'wrtStr' stores the information of the hypergraph
+        ## each row represents a hyperedge
+        ## each hyperedge is followed by the index of the node it contains; 
+        ## Hyperedges are separated by newlines
             
         print(os.getcwd())
         os.chdir('Tests/readMPS/')
@@ -74,7 +78,9 @@ def decomp_model(A, sizeA, con, nonzeros, vars, HGtype, instance, nBlocks):
         print('shmetis ../Tests/readMPS/HGraphFiles/'+instance+'rHG '+str(nBlocks)+' 1')
         print("Current directory:", os.getcwd())
         #os.system('/bin/bash shmetis ../Tests/readMPS/HGraphFiles/'+instance+'rHG '+str(nBlocks)+' 1')
-        if not os.path.exists('HGraphFiles/'+instance+'rHG.part.'+str(nBlocks)):
+        # Use the HMetis tool to decompose the hypergraph
+        if not os.path.exists('HGraphFiles/'+instance+'rHG.part.'+str(nBlocks)): 
+            # If the decomposition file does not exist, call the shmetis command to decompose the hypergraph, and store the result in a file under the HGraphFiles directory
             os.system('./shmetis ../Tests/readMPS/HGraphFiles/'+instance+'rHG '+str(nBlocks)+' 1')
         else:
             print("Hypergraph exist!!")
@@ -84,16 +90,20 @@ def decomp_model(A, sizeA, con, nonzeros, vars, HGtype, instance, nBlocks):
         os.chdir('../Tests/readMPS/')
         print(os.getcwd())
         f = open('HGraphFiles/'+instance+'rHG.part.'+str(nBlocks))
-        xx = f.readlines()
+        xx = f.readlines() # Read the above decomposed file content into the list 'xx'
         f.close
+
+        # colgroup: re-group the variables corresponding to hypergraph partition
         colgroup = {}
         rowToGroup = {}
         for i in range(nBlocks+1):
-            colgroup[i] = []
+            colgroup[i] = [] # each group has an empty set
+            # colgroup[i] contains all the variable in block i
 
         for i in range(sizeA[1]):
-            colgroup[int(xx[i].strip('\n'))].append(i)
-            rowToGroup[i] = int(xx[i].strip('\n'))
+            # xx[i] should be the group number of variable i, i.e., xx[i] = 1,2,...,nBlocks
+            colgroup[int(xx[i].strip('\n'))].append(i) # 'xx' contains the group info from hypergraph partition
+            rowToGroup[i] = int(xx[i].strip('\n'))     # variable i belongs to which group
 
         varmap = {}
         ind = 0
@@ -101,6 +111,7 @@ def decomp_model(A, sizeA, con, nonzeros, vars, HGtype, instance, nBlocks):
             for k in colgroup[i]:
                 varmap[k] = ind
                 ind += 1
+
         rowgroup = {}
         for i in range(nBlocks+1):
             rowgroup[i] = []
@@ -108,8 +119,10 @@ def decomp_model(A, sizeA, con, nonzeros, vars, HGtype, instance, nBlocks):
         for i in range(sizeA[0]):
             groupind = rowToGroup[A.getrow(i).nonzero()[1][0]]
             if all([rowToGroup[A.getrow(i).nonzero()[1][k]] == groupind for k in range(len(A.getrow(i).nonzero()[1]))]):
+                # if all variables in this row belong to the same group (groupind), then this constraint belongs to this group
                 rowgroup[groupind].append(i)
             else:
+                # otherwise, it is a linking constraint 
                 rowgroup[nBlocks].append(i)
 
         rowmap = {}
@@ -118,14 +131,15 @@ def decomp_model(A, sizeA, con, nonzeros, vars, HGtype, instance, nBlocks):
             for k in rowgroup[i]:
                 rowmap[k] = ind
                 ind += 1
-        A_coo = A.tocoo(copy=True)
+                
+        A_coo = A.tocoo(copy=True) # COO(Coordinate Format) is a format for sparse matrix --> (row, col, data); copy = True/False
         A_row = A_coo.row
         A_col = A_coo.col
         A_data = A_coo.data
         A_reord_row = [rowmap[i] for i in A_row]
         A_reord_col = [varmap[i] for i in A_col]
         # A_reord is only for plotting, its corresponding data is incorrect
-        A_reord = csr_matrix((A_data,(A_reord_row,A_reord_col)))
+        A_reord = csr_matrix((A_data,(A_reord_row,A_reord_col))) # create a Compressed Sparse Row format (CSR) sparse matrix
         # plot
         plt.spy(A_reord,markersize=0.5)
         plt.show()
@@ -137,9 +151,9 @@ def decomp_model(A, sizeA, con, nonzeros, vars, HGtype, instance, nBlocks):
         #print(v.varName)
 
     var_group = [x.strip() for x in xx]
-    
+
     counter = {}
-    
+
     for element in var_group:
         counter[element] = counter.get(element, 0) + 1
     
@@ -176,12 +190,10 @@ def solve_decomp_with_slack(A, vars, RHS, SENSE, add_slack):
     # add variables to the model
     X_vars = [0 for i in range(A.shape[1])]
     for i in range(A.shape[1]):
-        curVar = new_model.addVar(lb = vars[i].lb, ub = vars[i].ub, vtype = vars[i].vtype,
+        X_vars[i] = new_model.addVar(lb = vars[i].lb, ub = vars[i].ub, vtype = vars[i].vtype,
                                                name = "X" + str(i))
-        X_vars[i] = curVar
-
     new_model.update()
-    
+
     slack_vars = []
     for i in range(A.shape[0]):
         ConsExpr = LinExpr()
@@ -194,14 +206,14 @@ def solve_decomp_with_slack(A, vars, RHS, SENSE, add_slack):
             slack_vars.append(cur_slack)
             ConsExpr -= cur_slack
         elif add_slack[i] and SENSE[i] == ">":
-            cur_slack = new_model_all.addVar(lb = 0.0, vtype = GRB.CONTINUOUS,
+            cur_slack = new_model.addVar(lb = 0.0, vtype = GRB.CONTINUOUS,
                                                name = "S" + str(i))
-            slack_vars_all.append(cur_slack)
+            slack_vars.append(cur_slack)
             ConsExpr += cur_slack
         elif add_slack[i] and SENSE[i] == "=":
             cur_slack1 = new_model.addVar(lb = 0.0, vtype = GRB.CONTINUOUS,
                                                name = "S" + str(i) + '_1')
-            cur_slack2 = new_model.addVar(vtype = GRB.CONTINUOUS,
+            cur_slack2 = new_model.addVar(lb = 0.0, vtype = GRB.CONTINUOUS,
                                                name = "S" + str(i) + '_2')
             slack_vars.append(cur_slack1)
             slack_vars.append(cur_slack2)
@@ -210,9 +222,8 @@ def solve_decomp_with_slack(A, vars, RHS, SENSE, add_slack):
         new_model.addConstr(lhs = ConsExpr, sense = SENSE[i], rhs = RHS[i], name = 'Constr'+str(i))  
 
     new_model.update()
-
+    
     objExpr = LinExpr()
-
     for i in range(len(slack_vars)):
         objExpr += slack_vars[i]
     
