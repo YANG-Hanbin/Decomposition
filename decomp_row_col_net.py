@@ -6,7 +6,7 @@ from scipy.sparse import csr_matrix
 import time
 import os
 
-def decomp_model(A, sizeA, con, nonzeros, vars, instance, nBlocks): 
+def decomp_model(A, sizeA, con, nonzeros, vars, instance, nBlocks, weight_r = 1, weight_c = 5, flag = 1): 
     print("Create a Row-Column-Net Hypergraph.")
     # Create Row-Column-Net Hypergraph
     rNetHg = []
@@ -21,29 +21,60 @@ def decomp_model(A, sizeA, con, nonzeros, vars, instance, nBlocks):
     nHedges = sum(sizeA)
     nHRedges = sizeA[0]
     nHCedges = sizeA[1]
-    wrtStr = str(nHedges)+'\t'+str(nNodes)+'\n' # Convert the number of hyperedges nHedges and the number of nodes nNodes into strings, separated by tabs and newlines
+    if flag == 1:
+        print("We do weighted partition")
+        wrtStr = str(nHedges)+'\t'+str(nNodes)+'\t'+ str(flag)+'\n' # Convert the number of hyperedges nHedges and the number of nodes nNodes into strings, separated by tabs and newlines
 
-    var_ind = {}
-    ind_var = {}
-    ind = 1
+        var_ind = {}
+        ind_var = {}
+        ind = 1
 
-    for i in range(nHRedges):
-        for k in range(len(rNetHg[i])):
-            var_ind[i, rNetHg[i][k]] = ind 
-            ind_var[ind] = (i, rNetHg[i][k])
-            wrtStr += str(ind)
-            ind += 1
-            if k < len(rNetHg[i])-1: # add a tab after the node index if it is not the last node of the hyperedge
-                wrtStr += '\t'
-        wrtStr += '\n'
+        for i in range(nHRedges):
+            wrtStr += str(weight_r)
+            wrtStr += '\t'
+            for k in range(len(rNetHg[i])):
+                var_ind[i, rNetHg[i][k]] = ind 
+                ind_var[ind] = (i, rNetHg[i][k])
+                wrtStr += str(ind)
+                ind += 1
+                if k < len(rNetHg[i])-1:
+                    wrtStr += '\t'
+            wrtStr += '\n'
 
-    for j in range(nHCedges):
-        for k in range(len(cNetHg[j])):
-            ind = var_ind[cNetHg[j][k], j]
-            wrtStr += str(ind)
-            if k < len(cNetHg[j])-1: # add a tab after the node index if it is not the last node of the hyperedge
-                wrtStr += '\t'
-        wrtStr += '\n'
+        for j in range(nHCedges):
+            wrtStr += str(weight_c)
+            wrtStr += '\t'
+            for k in range(len(cNetHg[j])):
+                ind = var_ind[cNetHg[j][k], j]
+                wrtStr += str(ind)
+                if k < len(rNetHg[i])-1:
+                    wrtStr += '\t'
+            wrtStr += '\n'
+    else:
+        print("We do un-weighted partition")
+        wrtStr = str(nHedges)+'\t'+str(nNodes)+'\n' # Convert the number of hyperedges nHedges and the number of nodes nNodes into strings, separated by tabs and newlines
+
+        var_ind = {}
+        ind_var = {}
+        ind = 1
+
+        for i in range(nHRedges):
+            for k in range(len(rNetHg[i])):
+                var_ind[i, rNetHg[i][k]] = ind 
+                ind_var[ind] = (i, rNetHg[i][k])
+                wrtStr += str(ind)
+                ind += 1
+                if k < len(rNetHg[i])-1:
+                    wrtStr += '\t'
+            wrtStr += '\n'
+
+        for j in range(nHCedges):
+            for k in range(len(cNetHg[j])):
+                ind = var_ind[cNetHg[j][k], j]
+                wrtStr += str(ind)
+                if k < len(rNetHg[i])-1:
+                    wrtStr += '\t'
+            wrtStr += '\n'
         
     # print(os.getcwd())
     os.chdir('/Users/aaron/Decomposition/Tests/readMPS')
