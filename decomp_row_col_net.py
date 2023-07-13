@@ -6,7 +6,7 @@ from scipy.sparse import csr_matrix
 import time
 import os
 
-def decomp_model(A, sizeA, con, nonzeros, vars, instance, nBlocks, weight_r = 1, weight_c = 5, flag = 1): 
+def decomp_model(A, sizeA, con, nonzeros, vars, instance, nBlocks, weight_r = 1, weight_c = 1, flag = 1): 
     print("Create a Row-Column-Net Hypergraph.")
     # Create Row-Column-Net Hypergraph
     rNetHg = []
@@ -17,7 +17,7 @@ def decomp_model(A, sizeA, con, nonzeros, vars, instance, nBlocks, weight_r = 1,
     for j in range(sizeA[1]):
         cNetHg.append(A.getcol(j).nonzero()[0])   
                     
-    nNodes = len(A.nonzero()[0])
+    nNodes = len(A.nonzero()[0])+round(len(nonzeros)*0.2)
     nHedges = sum(sizeA)
     nHRedges = sizeA[0]
     nHCedges = sizeA[1]
